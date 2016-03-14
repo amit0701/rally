@@ -24,6 +24,7 @@ from rally.plugins.openstack.scenarios.glance import utils as glance_utils
 from rally.plugins.openstack.scenarios.nova import utils as nova_utils
 from rally.task import types
 from rally.task import validation
+from rally.plugins.openstack.wrappers import glance as glance_wrapper
 
 LOG = logging.getLogger(__name__)
 
@@ -555,3 +556,28 @@ class CinderVolumes(cinder_utils.CinderScenario,
         if do_delete:
             self._delete_volume(volume)
             self._delete_backup(backup)
+   
+    @scenario.configure(context={"cleanup":["cinder","nova","glance"]}) 
+    def validate_osp_on_FlexPod(self, container_format, disk_format, image_location,flavor, rootVolume_size,
+                                create_image_kwargs= None, boot_server_kwargs=None, create_volume_kwargs=None): 
+        """List of tasks to validate RHEL OSP Installer
+           The scenario first uploads the image to Glance repository
+           Create bootable volumes from the uploaded image
+           Boot the image
+           Attach a ephemeral volume
+           Take a snapshot
+           Detach the volume
+           Shutdown the VM
+           Delete the VM      
+        """
+        create_image_kwargs = create_image_kwargs or {}
+        create_volume_kwargs = create_volume_kwargs or {}
+        boot_server_kwargs = boot_server_kwargs or {}
+
+        client = glance_wrapper.wrap(self._clients.glance, self)
+        image = client.create_image(container_format, 
+                           image_location,
+                           disk_format,
+                           **create_image_kwargs)
+        image_id = image.id
+        
