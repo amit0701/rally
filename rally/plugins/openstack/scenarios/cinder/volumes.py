@@ -556,9 +556,14 @@ class CinderVolumes(cinder_utils.CinderScenario,
         if do_delete:
             self._delete_volume(volume)
             self._delete_backup(backup)
-   
-    @scenario.configure(context={"cleanup":["cinder","nova","glance"]}) 
-    def validate_osp_on_FlexPod(self, container_format, disk_format, image_location,flavor, rootVolume_size,
+
+
+    @types.set(flavor=types.FlavorResourceType)
+    @validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
+    @validation.required_openstack(users=True)
+    @scenario.configure(context={"cleanup":["nova","glance"]}) 
+    def validate_osp_on_FlexPod(self, container_format, disk_format, image_location, flavor, rootVolume_size,
+                                size, force_delete=False,
                                 create_image_kwargs= None, boot_server_kwargs=None, create_volume_kwargs=None): 
         """List of tasks to validate RHEL OSP Installer
            The scenario first uploads the image to Glance repository
@@ -581,3 +586,17 @@ class CinderVolumes(cinder_utils.CinderScenario,
                            **create_image_kwargs)
         image_id = image.id
         
+        volume = self._create_volume(rootVolume_size, imageRef=image_id) 
+        block_device_mapping = {"vda": "%s:::1" % volume.id}
+        
+        server = self._boot_server(image, flavor,block_device_mapping=block_device_mapping,**boot_server_kwargs)
+        ephemeral_volume = self._create_volume(size, **create_volume_kwargs)
+        
+        self._attach_volume(server, ephemeral_volume)
+        self._detach_volume(server, ephemeral_volume)
+        self._delete_volume(ephemeral_volume)
+
+        self._stop_server(server)
+        self._delete_server(server)
+
+         
