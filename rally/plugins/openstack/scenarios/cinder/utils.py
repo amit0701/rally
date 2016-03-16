@@ -21,6 +21,7 @@ from oslo_config import cfg
 from rally import exceptions
 from rally.plugins.openstack import scenario
 from rally.plugins.openstack.wrappers import cinder as cinder_wrapper
+from rally.plugins.openstack.wrappers import glance as glance_wrapper
 from rally.task import atomic
 from rally.task import utils as bench_utils
 
@@ -352,3 +353,24 @@ class CinderScenario(scenario.OpenStackScenario):
     def get_random_server(self):
         server_id = random.choice(self.context["tenant"]["servers"])
         return self.clients("nova").servers.get(server_id)
+   
+
+    """Temporarily defining it here, since the original
+       glance image create is broken
+    """
+    @atomic.action_timer("glance.create_image")
+    def cinder_create_image(self, container_format,
+                                image_location, disk_format, **create_image_kwargs):
+        """Creating an image using glance image create.
+        :param container_format: container format of image. Acceptable
+                                 formats: ami, ari, aki, bare, and ovf
+        :param image_location: image file location
+        :param disk_format: disk format of image. Acceptable formats:
+                            ami, ari, aki, vhd, vmdk, raw, qcow2, vdi, and iso
+        :param kwargs: optional parameters to create image
+        """ 
+        client = glance_wrapper.wrap(self._clients.glance, self)
+        return client.create_image(container_format,
+                                   image_location,
+                                   disk_format,
+                                   **create_image_kwargs)         

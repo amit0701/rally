@@ -24,7 +24,6 @@ from rally.plugins.openstack.scenarios.glance import utils as glance_utils
 from rally.plugins.openstack.scenarios.nova import utils as nova_utils
 from rally.task import types
 from rally.task import validation
-from rally.plugins.openstack.wrappers import glance as glance_wrapper
 
 LOG = logging.getLogger(__name__)
 
@@ -557,11 +556,10 @@ class CinderVolumes(cinder_utils.CinderScenario,
             self._delete_volume(volume)
             self._delete_backup(backup)
 
-
     @types.set(flavor=types.FlavorResourceType)
     @validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
     @validation.required_openstack(users=True)
-    @scenario.configure(context={"cleanup":["nova","glance"]}) 
+    @scenario.configure(context={"cleanup":["nova","cinder","glance"]}) 
     def validate_osp_on_FlexPod(self, container_format, disk_format, image_location, flavor, rootVolume_size,
                                 size, force_delete=False,
                                 create_image_kwargs= None, boot_server_kwargs=None, create_volume_kwargs=None): 
@@ -579,11 +577,11 @@ class CinderVolumes(cinder_utils.CinderScenario,
         create_volume_kwargs = create_volume_kwargs or {}
         boot_server_kwargs = boot_server_kwargs or {}
 
-        client = glance_wrapper.wrap(self._clients.glance, self)
-        image = client.create_image(container_format, 
-                           image_location,
-                           disk_format,
-                           **create_image_kwargs)
+        """ client = glance_wrapper.wrap(self._clients.glance, self)"""
+        image = self.cinder_create_image(container_format, 
+                                   image_location, 
+                                   disk_format,
+                                   **create_image_kwargs)
         image_id = image.id
         
         volume = self._create_volume(rootVolume_size, imageRef=image_id) 
@@ -599,4 +597,3 @@ class CinderVolumes(cinder_utils.CinderScenario,
         self._stop_server(server)
         self._delete_server(server)
 
-         
