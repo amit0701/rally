@@ -1,0 +1,75 @@
+{% set flavor_name = flavor_name or "m1.tiny" %}
+{
+    "CinderVolumes.validate_osp_on_FlexPod":[
+        {
+            "args": {
+                   
+                      "container_format" : "bare",
+                      "image_location" : ["/Fedora-x86_64-20-20140407-sda.qcow2"],
+                      "disk_format" :"qcow2",
+                      "flavor": {
+                      "name" : "m1.small",
+                      },
+                      "rootVolume_size" : 60,
+                      "size" : 100  ,
+                      "create_image_kwargs": {
+                          "is_public": "False",
+                      },
+                      "functional_test_args": 
+                           [
+                               {
+                                   "image_location" : "/Fedora-x86_64-20-20140407-sda.qcow2",
+                                   "number_instances" : 3,
+                                   "number_volumes" : 3  
+                               },
+                               {
+                                   "image_location" : "/windows-server-2012-r2.qcow2",
+                                   "number_instances" : 3,
+                                   "number_volumes" : 3  
+                               }
+                           ]
+                                      
+            },
+            "runner":{
+                "type" : "constant",
+                "times" : 1,
+                "concurrency": 1
+            },
+     
+            "context":{
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant":1
+                },
+               "network": {
+                    "start_cidr":"10.0.0.0/16",
+                     "networks_per_tenant" :1,
+                     "subnets_per_network":1,
+                     "network_create_args":{}                    
+               },
+               "images":{
+                    "image_url": "/Fedora-x86_64-20-20140407-sda.qcow2",
+                    "image_type": "qcow2",
+                    "image_container": "bare",
+                    "images_per_tenant" :1
+             
+               },                    
+               "quotas":{
+                   "nova":{
+                     "instances": -1,
+                     "cores": -1,
+                     "ram": -1,
+                   },
+                   "neutron":{
+                     "network": -1,
+                     "port": -1,
+                     "subnet": -1
+                   }
+              }
+                
+            }
+        }
+        
+      
+    ]
+}
