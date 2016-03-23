@@ -562,7 +562,8 @@ class CinderVolumes(cinder_utils.CinderScenario,
     @scenario.configure(context={"cleanup":["nova","cinder","glance"]}) 
     def validate_osp_on_FlexPod(self, container_format, disk_format, image_location, flavor, rootVolume_size,
                                 size, force_delete=False,
-                                create_image_kwargs= None, boot_server_kwargs=None, create_volume_kwargs=None): 
+                                create_image_kwargs= None, boot_server_kwargs=None, create_volume_kwargs=None,
+                                functional_test_args=None): 
         """List of tasks to validate RHEL OSP Installer
            The scenario first uploads the image to Glance repository
            Create bootable volumes from the uploaded image
@@ -578,22 +579,32 @@ class CinderVolumes(cinder_utils.CinderScenario,
         boot_server_kwargs = boot_server_kwargs or {}
 
         """ client = glance_wrapper.wrap(self._clients.glance, self)"""
-        image = self.cinder_create_image(container_format, 
-                                   image_location, 
+        for funct_tuple in functional_test_args:
+            print funct_tuple["image_location"]  
+       
+        for funct_tuple in functional_test_args:
+    
+            image = self.cinder_create_image(container_format, 
+                                   funct_tuple["image_location"], 
                                    disk_format,
                                    **create_image_kwargs)
-        image_id = image.id
-        
-        volume = self._create_volume(rootVolume_size, imageRef=image_id) 
-        block_device_mapping = {"vda": "%s:::1" % volume.id}
-        
-        server = self._boot_server(image, flavor,block_device_mapping=block_device_mapping,**boot_server_kwargs)
-        ephemeral_volume = self._create_volume(size, **create_volume_kwargs)
-        
-        self._attach_volume(server, ephemeral_volume)
-        self._detach_volume(server, ephemeral_volume)
-        self._delete_volume(ephemeral_volume)
+            image_id = image.id
+             
+            server = []
+            for i in range(funct_tuple["number_instances"]):                
+                 volume = self._create_volume(rootVolume_size, imageRef=image_id)
+                 block_device_mapping = {"vda": "%s:::1" % volume.id}
+                 server.append(self._boot_server(image, flavor,
+                               block_device_mapping=block_device_mapping,**boot_server_kwargs))
 
-        self._stop_server(server)
-        self._delete_server(server)
+            for i in range(funct_tuple["number_volumes"]):
+                ephemeral_volume = self._create_volume(size, **create_volume_kwargs)
+                self._attach_volume(server[i], ephemeral_volume)
+                self._detach_volume(server[i], ephemeral_volume)
+                self._delete_volume(ephemeral_volume)
 
+
+            for i in range(funct_tuple["number_instances"]):                
+                self._stop_server(server[i])
+                self._delete_server(server[i])
+ 
