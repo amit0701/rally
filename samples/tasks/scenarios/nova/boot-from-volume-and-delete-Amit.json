@@ -1,0 +1,53 @@
+{
+    "NovaServers.boot_server_from_volume_and_delete": [ 
+        {
+            "args": {
+                "flavor": {
+                    "name": "m1.amit"
+                },
+                "min_sleep":  2,
+                "max_sleep": 4,               
+                "image": {
+                    "name": "Fedora"
+                },
+                "volume_size": 60,
+                 "auto_assign_nic": true
+            },
+            "runner": {
+                "type": "constant",
+                "times": 2000,
+                "concurrency":35,
+            },
+            "context": {
+                "users": {
+                    "tenants" :1,
+                    "users_per_tenant" :1
+                },
+                "network": {
+                    "start_cidr":"10.0.0.0/16",
+                    "networks_per_tenant" : 1,
+                    "subnets_per_network":1
+                },
+                "quotas":{
+                    "nova":{
+                        "instances" : -1,
+                        "cores" : -1,
+                        "ram" : -1,
+                    },
+                    "neutron":{
+                        "network" : -1,
+                        "port" : -1,
+                        "subnet" : -1,
+                    },
+                    "cinder":{
+                        "gigabytes" : -1,
+                        "volumes" : -1,
+                    }
+                }
+            }
+             
+        }
+  ] 
+}
+
+
